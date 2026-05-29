@@ -10,90 +10,139 @@ class ProcessingModule: NSObject {
     private let ciContext = CIContext(options: nil)
 
     @objc
+    static func requiresMainQueueSetup() -> Bool {
+        return false
+    }
+
+    @objc
     func applyPortraitEffect(_ imagePath: String,
                              resolver resolve: @escaping RCTPromiseResolveBlock,
                              rejecter reject: @escaping RCTPromiseRejectBlock) {
-        guard let inputImage = UIImage(contentsOfFile: imagePath),
-              let cgImage = inputImage.cgImage else {
-            reject("IMAGE_LOAD_ERROR", "Could not load input image", nil)
-            return
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                guard let outputPath = self.portraitEffect(at: imagePath) else {
+                    throw NSError(domain: "ProcessingModule",
+                                  code: -1,
+                                  userInfo: [NSLocalizedDescriptionKey: "Failed to apply portrait effect"])
+                }
+
+                DispatchQueue.main.async {
+                    resolve(outputPath)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    reject("PORTRAIT_EFFECT_ERROR", error.localizedDescription, error)
+                }
+            }
         }
-
-        let ciImage = CIImage(cgImage: cgImage)
-
-        // Basic blur effect placeholder:
-        // In the final version, this should use Vision person segmentation
-        // and composite the blurred background behind the subject.
-        let blurred = ciImage.clampedToExtent()
-            .applyingFilter("CIGaussianBlur", parameters: [
-                kCIInputRadiusKey: 15.0
-            ])
-            .cropped(to: ciImage.extent)
-
-        guard let outputCG = ciContext.createCGImage(blurred, from: blurred.extent) else {
-            reject("PROCESS_ERROR", "Could not create blurred image", nil)
-            return
-        }
-
-        let outputUIImage = UIImage(cgImage: outputCG)
-
-        guard let savedPath = saveToTemp(image: outputUIImage, filename: "portrait_effect.jpg") else {
-            reject("SAVE_ERROR", "Could not save processed image", nil)
-            return
-        }
-
-        resolve(savedPath)
     }
 
     @objc
     func applySharpnessRestore(_ imagePath: String,
                                resolver resolve: @escaping RCTPromiseResolveBlock,
                                rejecter reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                guard let outputPath = self.sharpnessRestore(at: imagePath) else {
+                    throw NSError(domain: "ProcessingModule",
+                                  code: -2,
+                                  userInfo: [NSLocalizedDescriptionKey: "Failed to apply sharpness restore"])
+                }
+
+                DispatchQueue.main.async {
+                    resolve(outputPath)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    reject("SHARPNESS_RESTORE_ERROR", error.localizedDescription, error)
+                }
+            }
+        }
+    }
+
+    private func portraitEffect(at imagePath: String) -> String? {
         guard let inputImage = UIImage(contentsOfFile: imagePath),
               let cgImage = inputImage.cgImage else {
-            reject("IMAGE_LOAD_ERROR", "Could not load input image", nil)
-            return
+            return nil
         }
 
         let ciImage = CIImage(cgImage: cgImage)
 
-        // Simple sharpening baseline
-        let sharpened = ciImage.applyingFilter("CISharpenLuminance", parameters: [
-            kCIInputSharpnessKey: 0.8
-        ])
-
-        guard let outputCG = ciContext.createCGImage(sharpened, from: sharpened.extent) else {
-            reject("PROCESS_ERROR", "Could not create sharpened image", nil)
-            return
-        }
-
-        let outputUIImage = UIImage(cgImage: outputCG)
-
-        guard let savedPath = saveToTemp(image: outputUIImage, filename: "restored_image.jpg") else {
-            reject("SAVE_ERROR", "Could not save restored image", nil)
-            return
-        }
-
-        resolve(savedPath)
-    }
-
-    private func saveToTemp(image: UIImage, filename: String) -> String? {
-        guard let data = image.jpegData(compressionQuality: 0.95) else {
+        guard let mask = personMask(for: ciImage) else {
             return nil
         }
 
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let blurredBackground = ciImage
+            .clampedToExtent()
+            .applyingFilter("CIGaussianBlur", parameters: [
+                kCIInputRadiusKey: 18.0
+            ])
+            .cropped(to: ciImage.extent)
+
+        guard let composited = composite(foreground: ciImage, background: blurredBackground, mask: mask),
+              let outputCG = ciContext.createCGImage(composited, from: composited.extent) else {
+            return nil
+        }
+
+        let outputImage = UIImage(cgImage: outputCG)
+        return NativeImageUtils.saveImageToTemp(outputImage, filename: "portrait_effect_\(UUID().uuidString).jpg")
+    }
+
+    private func sharpnessRestore(at imagePath: String) -> String? {
+        guard let inputImage = UIImage(contentsOfFile: imagePath),
+              let cgImage = inputImage.cgImage else {
+            return nil
+        }
+
+        let ciImage = CIImage(cgImage: cgImage)
+
+        let restored = ciImage
+            .applyingFilter("CISharpenLuminance", parameters: [
+                kCIInputSharpnessKey: 1.0
+            ])
+
+        guard let outputCG = ciContext.createCGImage(restored, from: restored.extent) else {
+            return nil
+        }
+
+        let outputImage = UIImage(cgImage: outputCG)
+        return NativeImageUtils.saveImageToTemp(outputImage, filename: "restored_\(UUID().uuidString).jpg")
+    }
+
+    private func personMask(for ciImage: CIImage) -> CIImage? {
+        let request = VNGeneratePersonSegmentationRequest()
+        request.qualityLevel = .balanced
+        request.outputPixelFormat = kCVPixelFormatType_OneComponent8
+
+        let handler = VNImageRequestHandler(ciImage: ciImage, options: [:])
 
         do {
-            try data.write(to: url)
-            return url.path
+            try handler.perform([request])
         } catch {
             return nil
         }
+
+        guard let maskPixelBuffer = request.results?.first?.pixelBuffer else {
+            return nil
+        }
+
+        return CIImage(cvPixelBuffer: maskPixelBuffer)
     }
 
-    @objc
-    static func requiresMainQueueSetup() -> Bool {
-        return false
+    private func composite(foreground: CIImage, background: CIImage, mask: CIImage) -> CIImage? {
+        let scaledMask = mask
+            .transformed(by: CGAffineTransform(scaleX: foreground.extent.width / mask.extent.width,
+                                               y: foreground.extent.height / mask.extent.height))
+            .cropped(to: foreground.extent)
+
+        guard let blend = CIFilter(name: "CIBlendWithMask") else {
+            return nil
+        }
+
+        blend.setValue(background, forKey: kCIInputBackgroundImageKey)
+        blend.setValue(foreground, forKey: kCIInputImageKey)
+        blend.setValue(scaledMask, forKey: kCIInputMaskImageKey)
+
+        return blend.outputImage?.cropped(to: foreground.extent)
     }
 }

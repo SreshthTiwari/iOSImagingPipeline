@@ -1,13 +1,11 @@
-export function computeBlurScore(imageUri: string): Promise<number> {
-  // Prototype placeholder:
-  // This will call native code
-  // to compute sharpness metrics.
-  return new Promise(resolve => {
-    const fakeScore = 120 + Math.random() * 180;
-    resolve(fakeScore);
-  });
-}
+import {NativeModules} from 'react-native';
 
-export function isBlurry(score: number, threshold = 180): boolean {
+const {BlurMetricsModule} = NativeModules;
+
+export const computeBlurScore = async (imagePath: string): Promise<number> => {
+  return BlurMetricsModule.computeBlurScore(imagePath);
+};
+
+export const isBlurry = (score: number, threshold = 150): boolean => {
   return score < threshold;
-}
+};

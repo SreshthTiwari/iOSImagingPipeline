@@ -1,14 +1,11 @@
-// JS-side wrapper for native iOS processing.
-// Replace mocked logic with Vision/Core Image native module calls later.
+import {NativeModules} from 'react-native';
 
-export async function applyPortraitEffect(imageUri: string): Promise<string> {
-  // Mock: return same image for now.
-  // Later this would return a segmented + background-blurred output.
-  return Promise.resolve(imageUri);
-}
+const {ProcessingModule} = NativeModules;
 
-export async function applySharpnessRestore(imageUri: string): Promise<string> {
-  // Mock: return same image for now.
-  // Later this would return sharpened/restored image.
-  return Promise.resolve(imageUri);
-}
+export const applyPortraitEffect = async (imagePath: string): Promise<string> => {
+  return ProcessingModule.applyPortraitEffect(imagePath);
+};
+
+export const applySharpnessRestore = async (imagePath: string): Promise<string> => {
+  return ProcessingModule.applySharpnessRestore(imagePath);
+};
