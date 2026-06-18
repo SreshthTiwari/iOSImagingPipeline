@@ -4,7 +4,7 @@
 
 # Getting Started
 
-This project is my own implementation of a portrait imaging app specifically for iOS. I highly recommend reading [this report](./SreshthTiwari_Report.pdf) that I wrote for details and results. I've detailed steps on running the app below:
+This project is a computational photography pipeline written in Swift for iOS. The system uses Apple’s Vision, Core Image, and AVFoundation frameworks to perform  on device image processing without relying on a deep learning model. I highly recommend reading [this report](./SreshthTiwari_Report.pdf) that I wrote for details and results. I've detailed steps on running the app below:
 
 ## Prerequisites
 
