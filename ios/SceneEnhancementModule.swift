@@ -26,12 +26,10 @@ class SceneEnhancementModule: NSObject {
                     return
                 }
 
-                guard let cgImage = inputImage.cgImage else {
-                    reject("SCENE_ENHANCE_ERROR", "Image does not contain a CGImage", nil)
+                guard let ciImage = CIImage(image: inputImage) else {
+                    reject("SCENE_ENHANCE_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let ciImage = CIImage(cgImage: cgImage)
 
                 guard let output = self.processSceneEnhancement(input: ciImage) else {
                     reject("SCENE_ENHANCE_ERROR", "Scene enhancement failed", nil)
@@ -43,7 +41,7 @@ class SceneEnhancementModule: NSObject {
                     return
                 }
 
-                let outputUIImage = UIImage(cgImage: outputCG)
+                let outputUIImage = UIImage(cgImage: outputCG, scale: inputImage.scale, orientation: inputImage.imageOrientation)
 
                 guard let savedPath = self.saveToTemp(image: outputUIImage, prefix: "scene_enhanced") else {
                     reject("SCENE_ENHANCE_ERROR", "Could not save scene enhanced output", nil)

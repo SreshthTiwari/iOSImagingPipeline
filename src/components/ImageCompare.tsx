@@ -11,13 +11,13 @@ export default function ImageCompare({leftUri, rightUri}: Props) {
     <View style={styles.container}>
       <View style={styles.column}>
         <Text style={styles.label}>Original</Text>
-        <Image source={{uri: leftUri}} style={styles.image} resizeMode="cover" />
+        <Image source={{uri: leftUri}} style={styles.image} resizeMode="contain" />
       </View>
 
       <View style={styles.column}>
         <Text style={styles.label}>Processed</Text>
         {rightUri ? (
-          <Image source={{uri: rightUri}} style={styles.image} resizeMode="cover" />
+          <Image source={{uri: rightUri}} style={styles.image} resizeMode="contain" />
         ) : (
           <View style={[styles.image, styles.empty]}>
             <Text style={styles.emptyText}>No processed image</Text>

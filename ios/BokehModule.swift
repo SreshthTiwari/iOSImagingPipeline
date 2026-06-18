@@ -27,12 +27,10 @@ class BokehModule: NSObject {
                     return
                 }
 
-                guard let cgImage = inputImage.cgImage else {
-                    reject("BOKEH_ERROR", "Image does not contain a CGImage", nil)
+                guard let ciImage = CIImage(image: inputImage) else {
+                    reject("BOKEH_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let ciImage = CIImage(cgImage: cgImage)
 
                 guard let mask = self.generatePersonMask(for: ciImage) else {
                     reject("BOKEH_ERROR", "Could not generate person mask", nil)
@@ -42,7 +40,7 @@ class BokehModule: NSObject {
                 let blurredBackground = ciImage
                     .clampedToExtent()
                     .applyingFilter("CIGaussianBlur", parameters: [
-                        kCIInputRadiusKey: 20.0
+                        kCIInputRadiusKey: 12.0
                     ])
                     .cropped(to: ciImage.extent)
 
@@ -58,7 +56,7 @@ class BokehModule: NSObject {
                     return
                 }
 
-                let outputUIImage = UIImage(cgImage: outputCG)
+                let outputUIImage = UIImage(cgImage: outputCG, scale: inputImage.scale, orientation: inputImage.imageOrientation)
 
                 guard let savedPath = self.saveToTemp(image: outputUIImage, prefix: "bokeh") else {
                     reject("BOKEH_ERROR", "Could not save bokeh output", nil)
@@ -104,7 +102,7 @@ class BokehModule: NSObject {
                 kCIInputSaturationKey: 0.0
             ])
             .applyingFilter("CIGaussianBlur", parameters: [
-                kCIInputRadiusKey: 1.0
+                kCIInputRadiusKey: 2.5
             ])
             .cropped(to: ciImage.extent)
 
