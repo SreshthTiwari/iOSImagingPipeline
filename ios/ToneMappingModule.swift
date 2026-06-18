@@ -26,12 +26,10 @@ class ToneMappingModule: NSObject {
                     return
                 }
 
-                guard let cgImage = inputImage.cgImage else {
-                    reject("TONE_MAP_ERROR", "Image does not contain a CGImage", nil)
+                guard let ciImage = CIImage(image: inputImage) else {
+                    reject("TONE_MAP_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let ciImage = CIImage(cgImage: cgImage)
 
                 guard let output = self.processToneMapping(input: ciImage) else {
                     reject("TONE_MAP_ERROR", "Tone mapping failed", nil)
@@ -43,7 +41,7 @@ class ToneMappingModule: NSObject {
                     return
                 }
 
-                let outputUIImage = UIImage(cgImage: outputCG)
+                let outputUIImage = UIImage(cgImage: outputCG, scale: inputImage.scale, orientation: inputImage.imageOrientation)
 
                 guard let savedPath = self.saveToTemp(image: outputUIImage, prefix: "tone_mapped") else {
                     reject("TONE_MAP_ERROR", "Could not save tone mapped output", nil)

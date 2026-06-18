@@ -30,12 +30,10 @@ class ProcessingModule: NSObject {
                     return
                 }
 
-                guard let cgImage = inputImage.cgImage else {
-                    reject("PORTRAIT_EFFECT_ERROR", "Input image has no CGImage", nil)
+                guard let ciImage = CIImage(image: inputImage) else {
+                    reject("PORTRAIT_EFFECT_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let ciImage = CIImage(cgImage: cgImage)
 
                 guard let maskImage = self.generatePersonMask(for: ciImage) else {
                     print("Mask failed, falling back to full-image blur")
@@ -52,7 +50,7 @@ class ProcessingModule: NSObject {
                         return
                     }
 
-                    let outputUIImage = UIImage(cgImage: outputCG)
+                    let outputUIImage = UIImage(cgImage: outputCG, scale: inputImage.scale, orientation: inputImage.imageOrientation)
 
                     guard let savedPath = self.saveToTemp(image: outputUIImage, prefix: "portrait_fallback") else {
                         reject("PORTRAIT_EFFECT_ERROR", "Could not save fallback portrait output", nil)
@@ -82,7 +80,7 @@ class ProcessingModule: NSObject {
                     return
                 }
 
-                let outputUIImage = UIImage(cgImage: outputCG)
+                    let outputUIImage = UIImage(cgImage: outputCG, scale: inputImage.scale, orientation: inputImage.imageOrientation)
 
                 guard let savedPath = self.saveToTemp(image: outputUIImage, prefix: "portrait_effect") else {
                     reject("PORTRAIT_EFFECT_ERROR", "Could not save portrait output", nil)
@@ -105,12 +103,10 @@ class ProcessingModule: NSObject {
                 let path = imagePath as String
 
                 guard let inputImage = UIImage(contentsOfFile: path),
-                      let cgImage = inputImage.cgImage else {
-                    reject("SHARPNESS_RESTORE_ERROR", "Could not load image for sharpening", nil)
+                      let ciImage = CIImage(image: inputImage) else {
+                    reject("SHARPNESS_RESTORE_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let ciImage = CIImage(cgImage: cgImage)
 
                 let sharpened = ciImage.applyingFilter("CISharpenLuminance", parameters: [
                     kCIInputSharpnessKey: 1.0
@@ -121,7 +117,7 @@ class ProcessingModule: NSObject {
                     return
                 }
 
-                let outputUIImage = UIImage(cgImage: outputCG)
+                let outputUIImage = UIImage(cgImage: outputCG, scale: inputImage.scale, orientation: inputImage.imageOrientation)
 
                 guard let savedPath = self.saveToTemp(image: outputUIImage, prefix: "restored") else {
                     reject("SHARPNESS_RESTORE_ERROR", "Could not save sharpened image", nil)

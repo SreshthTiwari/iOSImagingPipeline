@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import CoreImage
 import Accelerate
+import Vision
 import React
 
 @objc(MotionDeblurModule)
@@ -48,12 +49,10 @@ class MotionDeblurModule: NSObject {
                 let path = imagePath as String
 
                 guard let image = UIImage(contentsOfFile: path),
-                      let cgImage = image.cgImage else {
-                    reject("MOTION_BLUR_ERROR", "Could not load image at path: \(path)", nil)
+                      let input = CIImage(image: image) else {
+                    reject("MOTION_BLUR_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let input = CIImage(cgImage: cgImage)
 
                 guard let sharpened = self.deblurApproximation(input: input),
                       let outputCG = self.ciContext.createCGImage(sharpened, from: sharpened.extent) else {
@@ -61,7 +60,7 @@ class MotionDeblurModule: NSObject {
                     return
                 }
 
-                let outputUIImage = UIImage(cgImage: outputCG)
+                let outputUIImage = UIImage(cgImage: outputCG, scale: image.scale, orientation: image.imageOrientation)
 
                 guard let savedPath = self.saveToTemp(image: outputUIImage) else {
                     reject("MOTION_BLUR_ERROR", "Could not save deblurred image", nil)
@@ -135,8 +134,7 @@ class MotionDeblurModule: NSObject {
 
     private func deblurApproximation(input: CIImage) -> CIImage? {
         // Classical approximation: edge-aware sharpening + mild high-frequency emphasis.
-        guard let sharpen = CIFilter(name: "CISharpenLuminance"),
-              let unsharp = CIFilter(name: "CIUnsharpMask") else {
+        guard let sharpen = CIFilter(name: "CISharpenLuminance") else {
             return nil
         }
 
@@ -147,11 +145,17 @@ class MotionDeblurModule: NSObject {
             return nil
         }
 
-        unsharp.setValue(sharpened, forKey: kCIInputImageKey)
-        unsharp.setValue(2.0, forKey: kCIInputRadiusKey)
-        unsharp.setValue(0.5, forKey: kCIInputIntensityKey)
+        if let unsharp = CIFilter(name: "CIUnsharpMask") {
+            unsharp.setValue(sharpened, forKey: kCIInputImageKey)
+            unsharp.setValue(2.0, forKey: kCIInputRadiusKey)
+            unsharp.setValue(0.5, forKey: kCIInputIntensityKey)
 
-        return unsharp.outputImage
+            if let unsharpened = unsharp.outputImage {
+                return unsharpened
+            }
+        }
+
+        return sharpened
     }
 
     private func saveToTemp(image: UIImage) -> String? {

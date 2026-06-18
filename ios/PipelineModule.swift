@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import CoreImage
+import Vision
 import React
 
 @objc(PipelineModule)
@@ -22,17 +23,15 @@ class PipelineModule: NSObject {
                 let path = imagePath as String
 
                 guard let originalImage = UIImage(contentsOfFile: path),
-                      let originalCG = originalImage.cgImage else {
-                    reject("PIPELINE_ERROR", "Could not load image at path: \(path)", nil)
+                      let inputCI = CIImage(image: originalImage) else {
+                    reject("PIPELINE_ERROR", "Could not create CIImage from input image", nil)
                     return
                 }
-
-                let inputCI = CIImage(cgImage: originalCG)
 
                 // Step 1: tone mapping
                 guard let toneMapped = self.applyToneMapping(input: inputCI),
                       let toneMappedCG = self.ciContext.createCGImage(toneMapped, from: toneMapped.extent),
-                      let toneMappedUIImage = UIImage(cgImage: toneMappedCG),
+                      let toneMappedUIImage = UIImage(cgImage: toneMappedCG, scale: originalImage.scale, orientation: originalImage.imageOrientation),
                       let toneMappedPath = self.saveToTemp(image: toneMappedUIImage, prefix: "pipeline_tonemapped") else {
                     reject("PIPELINE_ERROR", "Tone mapping step failed", nil)
                     return
@@ -41,7 +40,7 @@ class PipelineModule: NSObject {
                 // Step 2: scene enhancement
                 guard let sceneEnhanced = self.applySceneEnhancement(path: toneMappedPath),
                       let sceneEnhancedCG = self.ciContext.createCGImage(sceneEnhanced, from: sceneEnhanced.extent),
-                      let sceneEnhancedUIImage = UIImage(cgImage: sceneEnhancedCG),
+                      let sceneEnhancedUIImage = UIImage(cgImage: sceneEnhancedCG, scale: originalImage.scale, orientation: originalImage.imageOrientation),
                       let sceneEnhancedPath = self.saveToTemp(image: sceneEnhancedUIImage, prefix: "pipeline_sceneenhanced") else {
                     reject("PIPELINE_ERROR", "Scene enhancement step failed", nil)
                     return
@@ -50,7 +49,7 @@ class PipelineModule: NSObject {
                 // Step 3: sharpening restoration
                 guard let sharpened = self.applySharpen(path: sceneEnhancedPath),
                       let sharpenedCG = self.ciContext.createCGImage(sharpened, from: sharpened.extent),
-                      let sharpenedUIImage = UIImage(cgImage: sharpenedCG),
+                      let sharpenedUIImage = UIImage(cgImage: sharpenedCG, scale: originalImage.scale, orientation: originalImage.imageOrientation),
                       let sharpenedPath = self.saveToTemp(image: sharpenedUIImage, prefix: "pipeline_sharpened") else {
                     reject("PIPELINE_ERROR", "Sharpening step failed", nil)
                     return
@@ -59,7 +58,7 @@ class PipelineModule: NSObject {
                 // Step 4: bokeh effect
                 guard let bokeh = self.applyBokeh(path: sharpenedPath),
                       let bokehCG = self.ciContext.createCGImage(bokeh, from: bokeh.extent),
-                      let bokehUIImage = UIImage(cgImage: bokehCG),
+                      let bokehUIImage = UIImage(cgImage: bokehCG, scale: originalImage.scale, orientation: originalImage.imageOrientation),
                       let bokehPath = self.saveToTemp(image: bokehUIImage, prefix: "pipeline_bokeh") else {
                     reject("PIPELINE_ERROR", "Bokeh step failed", nil)
                     return
@@ -98,9 +97,7 @@ class PipelineModule: NSObject {
 
     private func applySceneEnhancement(path: String) -> CIImage? {
         guard let image = UIImage(contentsOfFile: path),
-              let cgImage = image.cgImage else { return nil }
-
-        let ciImage = CIImage(cgImage: cgImage)
+              let ciImage = CIImage(image: image) else { return nil }
 
         guard let exposure = CIFilter(name: "CIExposureAdjust"),
               let vibrance = CIFilter(name: "CIVibrance"),
@@ -128,9 +125,7 @@ class PipelineModule: NSObject {
 
     private func applySharpen(path: String) -> CIImage? {
         guard let image = UIImage(contentsOfFile: path),
-              let cgImage = image.cgImage else { return nil }
-
-        let ciImage = CIImage(cgImage: cgImage)
+              let ciImage = CIImage(image: image) else { return nil }
 
         guard let sharpen = CIFilter(name: "CISharpenLuminance") else {
             return nil
@@ -144,9 +139,7 @@ class PipelineModule: NSObject {
 
     private func applyBokeh(path: String) -> CIImage? {
         guard let image = UIImage(contentsOfFile: path),
-              let cgImage = image.cgImage else { return nil }
-
-        let ciImage = CIImage(cgImage: cgImage)
+              let ciImage = CIImage(image: image) else { return nil }
 
         guard let request = try? VNGeneratePersonSegmentationRequest() else {
             return nil
@@ -181,14 +174,14 @@ class PipelineModule: NSObject {
                 kCIInputBrightnessKey: 0.0
             ])
             .applyingFilter("CIGaussianBlur", parameters: [
-                kCIInputRadiusKey: 1.0
+                kCIInputRadiusKey: 2.5
             ])
             .cropped(to: ciImage.extent)
 
         let blurredBackground = ciImage
             .clampedToExtent()
             .applyingFilter("CIGaussianBlur", parameters: [
-                kCIInputRadiusKey: 20.0
+                kCIInputRadiusKey: 12.0
             ])
             .cropped(to: ciImage.extent)
 
