@@ -128,9 +128,14 @@ export default function CameraScreen() {
       const outputPath = await applyBokehEffect(originalUri.replace('file://', ''));
       setProcessedUri(`file://${outputPath}`);
       setStatus('Bokeh complete');
-    } catch {
-      Alert.alert('Error', 'Bokeh failed.');
-      setStatus('Bokeh failed');
+    } catch (error) {
+      if ((error as {code?: string})?.code === 'BOKEH_NO_SUBJECT') {
+        Alert.alert('No person found', 'Portrait blur needs a person in the frame.');
+        setStatus('No person detected');
+      } else {
+        Alert.alert('Error', 'Bokeh failed.');
+        setStatus('Bokeh failed');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -202,9 +207,19 @@ export default function CameraScreen() {
       }
       setIsProcessing(true);
       setStatus('Removing motion blur...');
-      const outputPath = await removeMotionBlur(originalUri.replace('file://', ''));
-      setProcessedUri(`file://${outputPath}`);
-      setStatus('Motion deblur complete');
+      const result = await removeMotionBlur(originalUri.replace('file://', ''));
+      if (!result.applied) {
+        setStatus('No motion blur corrected');
+        Alert.alert(
+          'Nothing to correct',
+          'No reliable linear motion blur was found (the image looks sharp, is too noisy, or the blur direction was unclear), so it was left unchanged.',
+        );
+        return;
+      }
+      setProcessedUri(`file://${result.path}`);
+      setStatus(
+        `Deblurred (~${Math.round(result.lengthPixels)} px at ${Math.round(result.angleDegrees)}°)`,
+      );
     } catch (error) {
       console.error('removeMotionBlur error', error);
       Alert.alert('Error', String(error) || 'Motion deblur failed.');

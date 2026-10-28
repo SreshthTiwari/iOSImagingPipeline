@@ -34,6 +34,8 @@
 		2E2F1754E1457A88BC0CB71E /* ImagingIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE724A3C984D65CC4A5B796 /* ImagingIO.swift */; };
 		F6F438BE901EAA4A72F45F97 /* PipelineModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13BCFCC0144EAD84E26770B /* PipelineModule.swift */; };
 		BC7FF8D8133262865BAF85DE /* PipelineModule.m in Sources */ = {isa = PBXBuildFile; fileRef = CE71D82C6FACFCFF854E0E73 /* PipelineModule.m */; };
+		198DB63C7AD356F1581E0AC0 /* SharpnessMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA2A3E42FD418104B287B2D /* SharpnessMetric.swift */; };
+		933E75DD9FF57C72DC8BE636 /* BlurDeconvolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3D541647B846475F3DB913 /* BlurDeconvolution.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +72,8 @@
 		2AE724A3C984D65CC4A5B796 /* ImagingIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/ImagingIO.swift; sourceTree = "<group>"; };
 		E13BCFCC0144EAD84E26770B /* PipelineModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/PipelineModule.swift; sourceTree = "<group>"; };
 		CE71D82C6FACFCFF854E0E73 /* PipelineModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ComputationalPortraitApp/Modules/PipelineModule.m; sourceTree = "<group>"; };
+		ADA2A3E42FD418104B287B2D /* SharpnessMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/SharpnessMetric.swift; sourceTree = "<group>"; };
+		6C3D541647B846475F3DB913 /* BlurDeconvolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/BlurDeconvolution.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +94,8 @@
 				BC5A72712FCA1929000FFDDB /* portrait.jpg */,
 				BC5A726D2FCA175D000FFDDB /* BokehModule.m */,
 				BC5A726E2FCA175D000FFDDB /* BokehModule.swift */,
+				ADA2A3E42FD418104B287B2D /* SharpnessMetric.swift */,
+				6C3D541647B846475F3DB913 /* BlurDeconvolution.swift */,
 				86A7FBF26CD4AF899449243C /* ImagingStages.swift */,
 				2AE724A3C984D65CC4A5B796 /* ImagingIO.swift */,
 				E13BCFCC0144EAD84E26770B /* PipelineModule.swift */,
@@ -326,6 +332,8 @@
 				BC387E812FC98F0E00F9553F /* SampleImageModule.swift in Sources */,
 				BC5A726F2FCA175D000FFDDB /* BokehModule.swift in Sources */,
 				BC5A72702FCA175D000FFDDB /* BokehModule.m in Sources */,
+				198DB63C7AD356F1581E0AC0 /* SharpnessMetric.swift in Sources */,
+				933E75DD9FF57C72DC8BE636 /* BlurDeconvolution.swift in Sources */,
 				8DC189F860773FFE0A1774FA /* ImagingStages.swift in Sources */,
 				2E2F1754E1457A88BC0CB71E /* ImagingIO.swift in Sources */,
 				F6F438BE901EAA4A72F45F97 /* PipelineModule.swift in Sources */,
