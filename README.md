@@ -19,7 +19,7 @@ The UI is React Native; all image processing is in native Swift modules exposed 
 | Scene enhancement | Exposure, vibrance, contrast | Core Image (`CIVibrance`, `CIColorControls`) |
 | Camera capture | Live preview and still frame capture | AVFoundation |
 
-Each stage can be run on its own from the UI, or all together with **Run Pipeline**, which applies them in this order:
+Each stage can be run on its own from the UI, or all together with **Run Pipeline**, which applies them in this order and renders the whole chain **once** as a single Core Image graph (no intermediate files):
 
 ```mermaid
 flowchart LR
@@ -44,14 +44,25 @@ App/
     └── Modules/                  Swift modules + Objective-C bridge declarations
         ├── CameraModel           AVFoundation capture session
         ├── BlurMetricsModule     Laplacian-variance sharpness score
+        ├── ImagingStages         The stage filters as lazy CIImage transforms (single source of truth)
+        ├── ImagingIO             Shared CIContext, orientation-aware load, direct-to-JPEG write
+        ├── PipelineModule        Full pipeline as one Core Image graph, rendered once
         ├── ProcessingModule      Sharpening
         ├── BokehModule           Vision segmentation + compositing
         ├── ToneMappingModule
         ├── SceneEnhancementModule
         └── MotionDeblur          Blur estimate + sharpening-based "deblur" (sharpen + unsharp mask)
+tools/pipeline-bench/             macOS harness: old chain vs single pass (timing + PSNR)
 ```
 
-Each native module is a Swift class marked `@objc`, registered with a small `.m` file using `RCT_EXTERN_MODULE`, and called from the matching `src/native/*Bridge.ts` as a promise.
+Each native module is a Swift class marked `@objc`, registered with a small `.m` file using `RCT_EXTERN_MODULE`, and called from the matching `src/native/*Bridge.ts` as a promise. The filter parameters live only in `ImagingStages`; the per-stage modules and the full pipeline both call into it, so the buttons and the pipeline cannot drift apart.
+
+### Single-pass pipeline
+
+The first version rendered every stage to a `CGImage`, encoded a JPEG, wrote it to disk, and had the next stage reload it. Now `ImagingStages.fullPipeline` builds one lazy `CIImage` graph and `PipelineModule` renders it once, straight to a JPEG. Two details matter:
+
+- **Each stage clamps to the 0 to 1 range.** The old chain clipped implicitly because every stage went through an 8-bit JPEG. A float graph keeps out-of-range values instead, and `CISharpenLuminance` produces enormous ones in near-black pixels (it scales colour by a luminance ratio). Unclamped, the later background blur smears them into coloured blobs.
+- **Vision segments the source image, not the sharpened one.** Vision needs real pixels, so segmenting the end of the chain would force every earlier stage to render a second time. Person matting is insensitive to these mild tonal changes.
 
 ## Running it
 
@@ -77,10 +88,29 @@ npx tsc --noEmit     # type check
 npm run lint
 ```
 
+## Performance
+
+Wall-clock time for the full pipeline, old stage-by-stage chain versus the single pass, measured with [`tools/pipeline-bench`](./tools/pipeline-bench/main.swift) (15 runs after 2 warm-ups, median):
+
+| Input | Old chain | Single pass | Speedup | of which Vision | Temp data written |
+| --- | --- | --- | --- | --- | --- |
+| 0.3 MP, no person | 40 ms | 34 ms | 1.2x | 31 ms | 256 KB → 59 KB |
+| 5.1 MP portrait | 107 ms | 82 ms | 1.3x | 32 ms | 4.8 MB → 1.4 MB |
+| 12 MP portrait (resized) | 199 ms | 109 ms | 1.8x | 56 ms | 9.2 MB → 2.8 MB |
+
+The saving grows with resolution because it comes from removing the render, JPEG encode, disk write, and decode between stages; person segmentation costs the same either way. The single-pass output is visually identical to the old output. It differs from it by 32 to 42 dB PSNR, which is JPEG generation loss from the old chain plus small changes in Vision's matte (the old chain segmented the re-encoded image).
+
+These are **Mac numbers, not iPhone numbers**: Apple M5, macOS 26, Core Image on Metal, same Swift stage code as the app. The 12 MP row is a 5 MP photo resized up, not a real 12 MP capture. On-device timings are still to be measured (the app now logs the pipeline time with `NSLog`). Reproduce with:
+
+```sh
+tools/pipeline-bench/run.sh path/to/photo.jpg --runs 15 [--megapixels 12]
+```
+
 ## Limitations
 
 - **"Motion deblur" is sharpening, not deconvolution.** It estimates blur with the Laplacian metric and applies sharpening filters. It does not estimate a blur kernel or invert it. The report discusses this.
 - **Bokeh uses a uniform Gaussian blur** behind a segmentation matte, so quality depends on the matte and there is no depth-dependent falloff.
 - **Tone mapping and scene enhancement use fixed parameters.** They are not adaptive to image content.
-- **The pipeline renders through intermediate JPEGs.** Each stage saves a temporary file that the next stage reloads. A native single-pass `PipelineModule` exists in `Modules/` but is not yet registered in the Xcode target, so the app currently uses the JS fallback in `PipelineBridge.ts`.
-- No quantitative benchmarks yet; results in the report are qualitative.
+- **Bokeh with no person in frame blurs the entire image.** Vision returns an empty matte rather than an error, so everything counts as background. It should skip the effect instead.
+- **The stacked stages are aggressive.** Tone mapping, scene enhancement and sharpening each push contrast and saturation, and together they can look overcooked on high-contrast photos.
+- **Performance is only measured on a Mac so far**, and image quality only qualitatively.
