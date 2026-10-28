@@ -54,33 +54,7 @@ class ToneMappingModule: NSObject {
     }
 
     private func processToneMapping(input: CIImage) -> CIImage? {
-        guard let exposure = CIFilter(name: "CIExposureAdjust"),
-              let contrast = CIFilter(name: "CIColorControls"),
-              let highlightShadows = CIFilter(name: "CIHighlightShadowAdjust") else {
-            return nil
-        }
-
-        exposure.setValue(input, forKey: kCIInputImageKey)
-        exposure.setValue(0.15, forKey: kCIInputEVKey)
-
-        guard let exposed = exposure.outputImage else {
-            return nil
-        }
-
-        highlightShadows.setValue(exposed, forKey: kCIInputImageKey)
-        highlightShadows.setValue(0.25, forKey: "inputShadowAmount")
-        highlightShadows.setValue(0.15, forKey: "inputHighlightAmount")
-
-        guard let shadowAdjusted = highlightShadows.outputImage else {
-            return nil
-        }
-
-        contrast.setValue(shadowAdjusted, forKey: kCIInputImageKey)
-        contrast.setValue(1.08, forKey: kCIInputContrastKey)
-        contrast.setValue(1.02, forKey: kCIInputSaturationKey)
-        contrast.setValue(0.0, forKey: kCIInputBrightnessKey)
-
-        return contrast.outputImage
+        return ImagingStages.toneMap(input)
     }
 
     private func saveToTemp(image: UIImage, prefix: String) -> String? {

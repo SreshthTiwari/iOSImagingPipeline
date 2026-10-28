@@ -54,34 +54,7 @@ class SceneEnhancementModule: NSObject {
     }
 
     private func processSceneEnhancement(input: CIImage) -> CIImage? {
-        // Basic scene-dependent enhancement:
-        // improve exposure slightly, increase contrast, and add mild saturation.
-        guard let exposure = CIFilter(name: "CIExposureAdjust"),
-              let contrast = CIFilter(name: "CIColorControls"),
-              let vibrance = CIFilter(name: "CIVibrance") else {
-            return nil
-        }
-
-        exposure.setValue(input, forKey: kCIInputImageKey)
-        exposure.setValue(0.2, forKey: kCIInputEVKey)
-
-        guard let exposed = exposure.outputImage else {
-            return nil
-        }
-
-        vibrance.setValue(exposed, forKey: kCIInputImageKey)
-        vibrance.setValue(0.3, forKey: "inputAmount")
-
-        guard let vibranced = vibrance.outputImage else {
-            return nil
-        }
-
-        contrast.setValue(vibranced, forKey: kCIInputImageKey)
-        contrast.setValue(1.1, forKey: kCIInputContrastKey)
-        contrast.setValue(1.04, forKey: kCIInputSaturationKey)
-        contrast.setValue(0.0, forKey: kCIInputBrightnessKey)
-
-        return contrast.outputImage
+        return ImagingStages.sceneEnhance(input)
     }
 
     private func saveToTemp(image: UIImage, prefix: String) -> String? {

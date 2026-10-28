@@ -30,6 +30,10 @@
 		BCE11CA72FC93DA0005FFC3D /* CameraModel.m in Sources */ = {isa = PBXBuildFile; fileRef = BCE11C9B2FC93DA0005FFC3D /* CameraModel.m */; };
 		BCE11CA42FC93DA0005FFC3D /* BlurMetricsModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE11C9C2FC93DA0005FFC3D /* BlurMetricsModule.swift */; };
 		BCE11CA52FC93DA0005FFC3D /* NativeImageUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE11C9E2FC93DA0005FFC3D /* NativeImageUtils.swift */; };
+		8DC189F860773FFE0A1774FA /* ImagingStages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A7FBF26CD4AF899449243C /* ImagingStages.swift */; };
+		2E2F1754E1457A88BC0CB71E /* ImagingIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE724A3C984D65CC4A5B796 /* ImagingIO.swift */; };
+		F6F438BE901EAA4A72F45F97 /* PipelineModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13BCFCC0144EAD84E26770B /* PipelineModule.swift */; };
+		BC7FF8D8133262865BAF85DE /* PipelineModule.m in Sources */ = {isa = PBXBuildFile; fileRef = CE71D82C6FACFCFF854E0E73 /* PipelineModule.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +66,10 @@
 		BCE11CA62FC946D5005FFC3D /* ComputationalPortraitApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ComputationalPortraitApp-Bridging-Header.h"; sourceTree = "<group>"; };
 		CB6422C3ADCA26B66671328A /* libPods-ComputationalPortraitApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ComputationalPortraitApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		86A7FBF26CD4AF899449243C /* ImagingStages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/ImagingStages.swift; sourceTree = "<group>"; };
+		2AE724A3C984D65CC4A5B796 /* ImagingIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/ImagingIO.swift; sourceTree = "<group>"; };
+		E13BCFCC0144EAD84E26770B /* PipelineModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputationalPortraitApp/Modules/PipelineModule.swift; sourceTree = "<group>"; };
+		CE71D82C6FACFCFF854E0E73 /* PipelineModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ComputationalPortraitApp/Modules/PipelineModule.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +90,10 @@
 				BC5A72712FCA1929000FFDDB /* portrait.jpg */,
 				BC5A726D2FCA175D000FFDDB /* BokehModule.m */,
 				BC5A726E2FCA175D000FFDDB /* BokehModule.swift */,
+				86A7FBF26CD4AF899449243C /* ImagingStages.swift */,
+				2AE724A3C984D65CC4A5B796 /* ImagingIO.swift */,
+				E13BCFCC0144EAD84E26770B /* PipelineModule.swift */,
+				CE71D82C6FACFCFF854E0E73 /* PipelineModule.m */,
 				BC5A72622FCA1745000FFDDB /* SceneEnhancementModule.m */,
 				BC5A72632FCA1745000FFDDB /* SceneEnhancementModule.swift */,
 				BC5A72642FCA1745000FFDDB /* ToneMappingModule.m */,
@@ -314,6 +326,10 @@
 				BC387E812FC98F0E00F9553F /* SampleImageModule.swift in Sources */,
 				BC5A726F2FCA175D000FFDDB /* BokehModule.swift in Sources */,
 				BC5A72702FCA175D000FFDDB /* BokehModule.m in Sources */,
+				8DC189F860773FFE0A1774FA /* ImagingStages.swift in Sources */,
+				2E2F1754E1457A88BC0CB71E /* ImagingIO.swift in Sources */,
+				F6F438BE901EAA4A72F45F97 /* PipelineModule.swift in Sources */,
+				BC7FF8D8133262865BAF85DE /* PipelineModule.m in Sources */,
 				BC387E852FC99D8700F9553F /* SampleImageModule.m in Sources */,
 				BCE11CA52FC93DA0005FFC3D /* NativeImageUtils.swift in Sources */,
 				BC5A72662FCA1746000FFDDB /* ToneMappingModule.swift in Sources */,

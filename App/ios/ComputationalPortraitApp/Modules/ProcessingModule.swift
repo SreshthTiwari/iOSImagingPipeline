@@ -108,9 +108,7 @@ class ProcessingModule: NSObject {
                     return
                 }
 
-                let sharpened = ciImage.applyingFilter("CISharpenLuminance", parameters: [
-                    kCIInputSharpnessKey: 1.0
-                ])
+                let sharpened = ImagingStages.sharpen(ciImage)
 
                 guard let outputCG = self.ciContext.createCGImage(sharpened, from: sharpened.extent) else {
                     reject("SHARPNESS_RESTORE_ERROR", "Could not render sharpened image", nil)

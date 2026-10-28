@@ -37,19 +37,7 @@ class BokehModule: NSObject {
                     return
                 }
 
-                let blurredBackground = ciImage
-                    .clampedToExtent()
-                    .applyingFilter("CIGaussianBlur", parameters: [
-                        kCIInputRadiusKey: 12.0
-                    ])
-                    .cropped(to: ciImage.extent)
-
-                guard let composited = self.composite(foreground: ciImage,
-                                                      background: blurredBackground,
-                                                      mask: mask) else {
-                    reject("BOKEH_ERROR", "Could not composite bokeh image", nil)
-                    return
-                }
+                let composited = ImagingStages.bokeh(ciImage, mask: mask)
 
                 guard let outputCG = self.ciContext.createCGImage(composited, from: composited.extent) else {
                     reject("BOKEH_ERROR", "Could not render composited image", nil)
@@ -69,57 +57,12 @@ class BokehModule: NSObject {
     }
 
     private func generatePersonMask(for ciImage: CIImage) -> CIImage? {
-        let request = VNGeneratePersonSegmentationRequest()
-        request.qualityLevel = .accurate
-        request.outputPixelFormat = kCVPixelFormatType_OneComponent8
-
-        let handler = VNImageRequestHandler(ciImage: ciImage, options: [:])
-
         do {
-            try handler.perform([request])
+            return try ImagingStages.personMask(for: ciImage)
         } catch {
             print("Bokeh segmentation failed:", error)
             return nil
         }
-
-        guard let maskPixelBuffer = request.results?.first?.pixelBuffer else {
-            print("No bokeh mask returned")
-            return nil
-        }
-
-        var mask = CIImage(cvPixelBuffer: maskPixelBuffer)
-
-        let xScale = ciImage.extent.width / mask.extent.width
-        let yScale = ciImage.extent.height / mask.extent.height
-        mask = mask
-            .transformed(by: CGAffineTransform(scaleX: xScale, y: yScale))
-            .cropped(to: ciImage.extent)
-
-        mask = mask
-            .applyingFilter("CIColorControls", parameters: [
-                kCIInputContrastKey: 2.0,
-                kCIInputBrightnessKey: 0.0,
-                kCIInputSaturationKey: 0.0
-            ])
-            .applyingFilter("CIGaussianBlur", parameters: [
-                kCIInputRadiusKey: 2.5
-            ])
-            .cropped(to: ciImage.extent)
-
-        return mask
-    }
-
-    private func composite(foreground: CIImage, background: CIImage, mask: CIImage) -> CIImage? {
-        guard let blendFilter = CIFilter(name: "CIBlendWithMask") else {
-            print("Could not create CIBlendWithMask")
-            return nil
-        }
-
-        blendFilter.setValue(foreground, forKey: kCIInputImageKey)
-        blendFilter.setValue(background, forKey: kCIInputBackgroundImageKey)
-        blendFilter.setValue(mask, forKey: kCIInputMaskImageKey)
-
-        return blendFilter.outputImage?.cropped(to: foreground.extent)
     }
 
     private func saveToTemp(image: UIImage, prefix: String) -> String? {
