@@ -32,12 +32,17 @@ class BokehModule: NSObject {
                     return
                 }
 
-                guard let mask = self.generatePersonMask(for: ciImage) else {
+                guard let matte = self.generatePersonMask(for: ciImage) else {
                     reject("BOKEH_ERROR", "Could not generate person mask", nil)
                     return
                 }
 
-                let composited = ImagingStages.bokeh(ciImage, mask: mask)
+                guard matte.hasPerson else {
+                    reject("BOKEH_NO_SUBJECT", "No person found in the image", nil)
+                    return
+                }
+
+                let composited = ImagingStages.bokeh(ciImage, mask: matte.mask)
 
                 guard let outputCG = self.ciContext.createCGImage(composited, from: composited.extent) else {
                     reject("BOKEH_ERROR", "Could not render composited image", nil)
@@ -56,7 +61,7 @@ class BokehModule: NSObject {
         }
     }
 
-    private func generatePersonMask(for ciImage: CIImage) -> CIImage? {
+    private func generatePersonMask(for ciImage: CIImage) -> ImagingStages.PersonMatte? {
         do {
             return try ImagingStages.personMask(for: ciImage)
         } catch {

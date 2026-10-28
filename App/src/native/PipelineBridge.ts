@@ -14,6 +14,13 @@ export const runFullPipeline = async (imagePath: string): Promise<string> => {
   const toneMappedPath = await applyToneMapping(imagePath);
   const enhancedPath = await applySceneEnhancement(toneMappedPath);
   const sharpenedPath = await applySharpnessRestore(enhancedPath);
-  const bokehPath = await applyBokehEffect(sharpenedPath);
-  return bokehPath;
+  try {
+    return await applyBokehEffect(sharpenedPath);
+  } catch (error) {
+    // No person in frame: keep the processed image instead of failing the whole pipeline.
+    if ((error as {code?: string})?.code === 'BOKEH_NO_SUBJECT') {
+      return sharpenedPath;
+    }
+    throw error;
+  }
 };

@@ -15,8 +15,9 @@ jest.mock('../src/native/SceneEnhancementBridge', () => ({
 jest.mock('../src/native/ProcessingBridge', () => ({
   applySharpnessRestore: stage('sharpen'),
 }));
+const mockBokeh = stage('bokeh');
 jest.mock('../src/native/BokehBridge', () => ({
-  applyBokehEffect: stage('bokeh'),
+  applyBokehEffect: (path: string) => mockBokeh(path),
 }));
 
 describe('runFullPipeline JS fallback', () => {
@@ -32,6 +33,26 @@ describe('runFullPipeline JS fallback', () => {
 
     expect(calls).toEqual(['tone', 'scene', 'sharpen', 'bokeh']);
     expect(out).toBe('/in.jpg>tone>scene>sharpen>bokeh');
+  });
+
+  it('keeps the sharpened image when bokeh finds no person', async () => {
+    mockBokeh.mockRejectedValueOnce(
+      Object.assign(new Error('No person found'), {code: 'BOKEH_NO_SUBJECT'}),
+    );
+    const {runFullPipeline} = require('../src/native/PipelineBridge');
+
+    await expect(runFullPipeline('/in.jpg')).resolves.toBe(
+      '/in.jpg>tone>scene>sharpen',
+    );
+  });
+
+  it('still fails the pipeline on other bokeh errors', async () => {
+    mockBokeh.mockRejectedValueOnce(
+      Object.assign(new Error('boom'), {code: 'BOKEH_ERROR'}),
+    );
+    const {runFullPipeline} = require('../src/native/PipelineBridge');
+
+    await expect(runFullPipeline('/in.jpg')).rejects.toThrow('boom');
   });
 
   it('prefers the native PipelineModule when it is registered', async () => {

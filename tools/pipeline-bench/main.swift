@@ -56,7 +56,10 @@ func legacyChain(_ inputPath: String) throws -> (path: String, bytes: Int) {
     let scene = try step(tone, "scene") { ImagingStages.sceneEnhance($0) }
     let sharp = try step(scene, "sharp") { ImagingStages.sharpen($0) }
     // Segmentation on the sharpened, reloaded image, as the old bokeh stage did.
-    let final = try step(sharp, "bokeh") { try ImagingStages.bokeh($0, mask: ImagingStages.personMask(for: $0)) }
+    let final = try step(sharp, "bokeh") {
+        let matte = try ImagingStages.personMask(for: $0)
+        return matte.hasPerson ? ImagingStages.bokeh($0, mask: matte.mask) : $0
+    }
     let bytes = written.reduce(0) { $0 + fileSize($1) }
     for p in written where p != final { try? fm.removeItem(atPath: p) }
     return (final, bytes)
@@ -94,13 +97,7 @@ func psnr(_ a: String, _ b: String) -> Double {
 }
 
 func maskCoverage(_ path: String) throws -> Double {
-    let img = ImagingIO.load(path: path)!
-    let m = try ImagingStages.personMask(for: img)
-    let avg = m.applyingFilter("CIAreaAverage", parameters: [kCIInputExtentKey: CIVector(cgRect: m.extent)])
-    var px = [UInt8](repeating: 0, count: 4)
-    ctx.render(avg, toBitmap: &px, rowBytes: 4, bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-               format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)
-    return Double(px[0]) / 255
+    try ImagingStages.personMask(for: ImagingIO.load(path: path)!).coverage
 }
 
 func resized(_ path: String, megapixels: Double) throws -> String {
